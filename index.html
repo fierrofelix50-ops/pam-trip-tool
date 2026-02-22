@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAM Trip Tool v6</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0056b3">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Trip Tool">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 10px;
+            background: #f0f2f5;
+            font-size: 14px;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+
+        .section {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 3px;
+            font-size: 12px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .flex-row {
+            display: flex;
+            gap: 5px;
+        }
+
+        button {
+            background: #0056b3;
+            color: white;
+            padding: 12px;
+            border: none;
+            width: 100%;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        #micBtn {
+            background: #28a745;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        .preview-container,
+        .report-container {
+            display: none;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #000;
+            margin-bottom: 10px;
+            cursor: crosshair;
+        }
+
+        .report-box {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .instruction-text {
+            font-size: 12px;
+            color: #555;
+            font-style: italic;
+            margin-bottom: 15px;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="form-ui">
+
+        <div class="section grid-container">
+            <h3 class="full-width">Trip Basics</h3>
+            <div><label>Date</label><input type="date" id="date"></div>
+            <div><label>Trip / Order #</label><input type="text" id="trip"></div>
+            <div><label>Truck #</label><input type="text" id="truck"></div>
+            <div><label>Trailer #</label><input type="text" id="trailer"></div>
+            <div><label>Driver Code</label><input type="text" id="driverCode" style="text-transform: uppercase;"></div>
+        </div>
+
+        <div class="section grid-container">
+            <h3 class="full-width">Routing & Miles</h3>
+            <div class="full-width"><label>Shipper Name</label><input type="text" id="shipper"
+                    placeholder="Enter Shipper Name"></div>
+            <div>
+                <label>Origin</label>
+                <div class="flex-row">
+                    <input type="text" id="originCity" placeholder="City" style="flex: 2;">
+                    <select id="originState" style="flex: 1;"></select>
+                </div>
+            </div>
+            <div>
+                <label>Destination</label>
+                <div class="flex-row">
+                    <input type="text" id="destCity" placeholder="City" style="flex: 2;">
+                    <select id="destState" style="flex: 1;"></select>
+                </div>
+            </div>
+            <div><label>Beg. Odometer</label><input type="number" id="begOdo"></div>
+            <div><label>End Odometer</label><input type="number" id="endOdo"></div>
+        </div>
+
+        <div class="section grid-container">
+            <h3 class="full-width">Fuel Purchases</h3>
+            <div class="full-width"><label>Fuel Stops Count</label>
+                <select id="fuelCount" onchange="updateFuelInputs()">
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                </select>
+            </div>
+            <div id="fuelInputs" class="full-width grid-container"></div>
+        </div>
+
+        <button onclick="renderPreview()">Preview Sheets</button>
+        <button style="background:#17a2b8;" onclick="generateReports()">View Reports</button>
+    </div>
+
+    <div id="preview-ui" class="preview-container">
+        <h3>Sheet Previews</h3>
+        <span class="instruction-text">Tap anywhere on the images below to get the exact X and Y coordinates for text
+            alignment!</span>
+
+        <canvas id="canvasCover"></canvas>
+        <canvas id="canvasTrip"></canvas>
+        <button style="background:#28a745;" onclick="downloadJPEGs()">Save Sheets (TS & CS)</button>
+        <button style="background:#6c757d;" onclick="location.reload()">Back to Edit</button>
+    </div>
+
+    <div id="report-ui" class="report-container">
+        <h3>Trip Report</h3>
+        <div id="currentTripReport" class="report-box"></div>
+
+        <h3>Year-to-Date (YTD) Report</h3>
+        <div id="ytdReport" class="report-box"></div>
+
+        <button style="background:#28a745;" onclick="saveTripToYTD()">Save Trip to YTD</button>
+        <button style="background:#dc3545;" onclick="clearYTD()">Clear YTD Data</button>
+        <button style="background:#6c757d;" onclick="location.reload()">Back to App</button>
+    </div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registered'))
+                    .catch(err => console.log('Service Worker registration failed', err));
+            });
+        }
+
+        const usStates = ["", "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"];
+
+        function populateStates(selectId) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            select.innerHTML = '';
+            usStates.forEach(st => {
+                const opt = document.createElement('option');
+                opt.value = st;
+                opt.textContent = st || 'ST';
+                select.appendChild(opt);
+            });
+        }
+
+        window.onload = () => {
+            populateStates('originState');
+            populateStates('destState');
+
+            loadAllFields();
+
+            document.addEventListener('change', (e) => {
+                if (e.target.id) {
+                    localStorage.setItem(e.target.id, e.target.value);
+                }
+            });
+
+            document.addEventListener('input', (e) => {
+                if (e.target.id && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) {
+                    localStorage.setItem(e.target.id, e.target.value);
+                }
+            });
+
+            ['canvasCover', 'canvasTrip'].forEach(id => {
+                const canvas = document.getElementById(id);
+                canvas.addEventListener('click', function (event) {
+                    const rect = canvas.getBoundingClientRect();
+                    const scaleX = canvas.width / rect.width;
+                    const scaleY = canvas.height / rect.height;
+                    const x = Math.round((event.clientX - rect.left) * scaleX);
+                    const y = Math.round((event.clientY - rect.top) * scaleY);
+                    alert(`Coordinates clicked:\n\nX: ${x}\nY: ${y}\n\nYou can use these numbers in your drawing code.`);
+                });
+            });
+        };
+
+        function loadAllFields() {
+            // Priority 1: Fuel Count (needed to build dynamic inputs)
+            const fuelCount = localStorage.getItem('fuelCount') || '0';
+            const fuelCountEl = document.getElementById('fuelCount');
+            if (fuelCountEl) {
+                fuelCountEl.value = fuelCount;
+                updateFuelInputs();
+            }
+
+            // Priority 2: All other fields
+            const inputs = document.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                if (!input.id) return;
+                const saved = localStorage.getItem(input.id);
+                if (saved !== null) {
+                    input.value = saved;
+                }
+            });
+
+            // Special handling for date if empty
+            const dateInput = document.getElementById('date');
+            if (dateInput && !dateInput.value) {
+                dateInput.valueAsDate = new Date();
+            }
+        }
+
+        function updateFuelInputs() {
+            const count = document.getElementById('fuelCount').value;
+            const container = document.getElementById('fuelInputs');
+            container.innerHTML = '';
+            for (let i = 1; i <= count; i++) {
+                container.innerHTML += `
+                    <div class="full-width" style="border-top: 1px dashed #ccc; padding-top: 5px;"><b>Stop ${i}</b></div>
+                    <div>
+                        <label>City & State</label>
+                        <div class="flex-row">
+                            <input type="text" id="fuelCity${i}" placeholder="City" style="flex: 2;">
+                            <select id="fuelState${i}" style="flex: 1;"></select>
+                        </div>
+                    </div>
+                    <div><label>Gallons</label><input type="number" step="0.1" id="fuelGal${i}" class="gallons"></div>
+                    <div><label>Total Cost ($)</label><input type="number" step="0.01" id="fuelCost${i}" class="costs"></div>
+                    <div><label>Odometer</label><input type="number" id="fuelOdo${i}"></div>
+                `;
+            }
+            for (let i = 1; i <= count; i++) {
+                populateStates(`fuelState${i}`);
+            }
+        }
+
+        function formatLocationString(cityId, stateId) {
+            const city = document.getElementById(cityId)?.value.trim() || '';
+            const state = document.getElementById(stateId)?.value || '';
+            let res = city;
+            if (city && state) res = `${city}, ${state}`;
+            else res = city || state;
+            return res.toUpperCase();
+        }
+
+
+        let currentTripData = {};
+
+        function generateReports() {
+            document.getElementById('form-ui').style.display = 'none';
+            document.getElementById('report-ui').style.display = 'block';
+
+            const begOdo = parseFloat(document.getElementById('begOdo').value) || 0;
+            const endOdo = parseFloat(document.getElementById('endOdo').value) || 0;
+            const miles = endOdo > begOdo ? endOdo - begOdo : 0;
+
+            let totalGal = 0, totalCost = 0;
+            document.querySelectorAll('.gallons').forEach(el => totalGal += parseFloat(el.value) || 0);
+            document.querySelectorAll('.costs').forEach(el => totalCost += parseFloat(el.value) || 0);
+
+            const mpg = totalGal > 0 ? (miles / totalGal).toFixed(2) : 0;
+            const cpm = miles > 0 ? (totalCost / miles).toFixed(2) : 0;
+
+            currentTripData = { miles, totalGal, totalCost };
+
+            document.getElementById('currentTripReport').innerHTML = `
+                <b>Miles Driven:</b> ${miles} <br>
+                <b>Total Fuel:</b> ${totalGal} gal <br>
+                <b>Fuel Cost:</b> $${totalCost.toFixed(2)} <br>
+                <b>Avg MPG:</b> ${mpg} <br>
+                <b>Cost Per Mile:</b> $${cpm}
+            `;
+
+            loadYTDReport();
+        }
+
+        function saveTripToYTD() {
+            let ytd = JSON.parse(localStorage.getItem('ytdData') || '{"miles":0, "gallons":0, "cost":0}');
+            ytd.miles += currentTripData.miles;
+            ytd.gallons += currentTripData.totalGal;
+            ytd.cost += currentTripData.totalCost;
+            localStorage.setItem('ytdData', JSON.stringify(ytd));
+            alert("Trip saved to YTD totals!");
+            loadYTDReport();
+        }
+
+        function loadYTDReport() {
+            let ytd = JSON.parse(localStorage.getItem('ytdData') || '{"miles":0, "gallons":0, "cost":0}');
+            const ytdMpg = ytd.gallons > 0 ? (ytd.miles / ytd.gallons).toFixed(2) : 0;
+            const ytdCpm = ytd.miles > 0 ? (ytd.cost / ytd.miles).toFixed(2) : 0;
+
+            document.getElementById('ytdReport').innerHTML = `
+                <b>YTD Miles:</b> ${ytd.miles} <br>
+                <b>YTD Fuel:</b> ${ytd.gallons.toFixed(2)} gal <br>
+                <b>YTD Fuel Cost:</b> $${ytd.cost.toFixed(2)} <br>
+                <b>YTD Avg MPG:</b> ${ytdMpg} <br>
+                <b>YTD Cost Per Mile:</b> $${ytdCpm}
+            `;
+        }
+
+        function clearYTD() {
+            if (confirm("Are you sure you want to erase all Year-to-Date data?")) {
+                localStorage.removeItem('ytdData');
+                loadYTDReport();
+            }
+        }
+
+        async function renderPreview() {
+            const driverCodeInput = document.getElementById('driverCode');
+            driverCodeInput.value = driverCodeInput.value.toUpperCase();
+            localStorage.setItem('driverCode', driverCodeInput.value); // Ensure uppercase version is saved
+
+            document.getElementById('form-ui').style.display = 'none';
+            document.getElementById('preview-ui').style.display = 'block';
+            await drawCover();
+            await drawTrip();
+        }
+
+        async function drawCover() {
+            const canvas = document.getElementById('canvasCover');
+            const ctx = canvas.getContext('2d');
+            const img = new Image(); img.src = '4012.jpg'; await img.decode();
+            canvas.width = img.width; canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            ctx.font = "bold 43px Courier";
+
+            ctx.fillText(document.getElementById('truck').value, 700, 780);
+            ctx.fillText(document.getElementById('trip').value, 700, 972);
+            ctx.fillText(document.getElementById('driverCode').value, 700, 1140);
+            ctx.fillText(document.getElementById('trailer').value, 700, 1320);
+        }
+
+        async function drawTrip() {
+            const canvas = document.getElementById('canvasTrip');
+            const ctx = canvas.getContext('2d');
+            const img = new Image(); img.src = '4013.jpg'; await img.decode();
+            canvas.width = img.width; canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            ctx.font = "30px Arial";
+
+            ctx.fillText(document.getElementById('trip').value, 149, 60);
+            ctx.fillText(document.getElementById('truck').value, 512, 60);
+            ctx.fillText(document.getElementById('trailer').value, 810, 60);
+            ctx.fillText(document.getElementById('driverCode').value, 1187, 60);
+            ctx.fillText(document.getElementById('date').value, 1155, 100);
+            ctx.fillText(document.getElementById('shipper').value, 224, 100);
+            ctx.fillText(document.getElementById('originCity').value, 613, 100);
+            ctx.fillText(document.getElementById('originState').value, 954, 100);
+            ctx.fillText(document.getElementById('begOdo').value, 388, 181);
+            ctx.fillText(document.getElementById('endOdo').value, 380, 220);
+
+            const rowHeight = 61;
+            const originY = 476;
+            const secondaryStartY = 537;
+
+            // Origin row
+            ctx.fillText(formatLocationString('originCity'), 105, originY);
+            ctx.fillText(formatLocationString('originState'), 415, originY);
+            ctx.fillText("X", 548, originY);
+
+            let currentY = secondaryStartY;
+
+            const count = parseInt(document.getElementById('fuelCount').value);
+            for (let i = 1; i <= count; i++) {
+                ctx.fillText(formatLocationString(`fuelCity${i}`), 112, currentY);
+                ctx.fillText(formatLocationString(`fuelState${i}`), 415, currentY);
+                ctx.fillText("X", 1164, currentY);
+                currentY += rowHeight;
+            }
+
+            // Destination row
+            ctx.fillText(formatLocationString('destCity'), 112, currentY);
+            ctx.fillText(formatLocationString('destState'), 415, currentY);
+            ctx.fillText("X", 708, currentY);
+
+        }
+
+        function downloadJPEGs() {
+            const tripNum = document.getElementById('trip').value || 'Unknown';
+            const sheets = [
+                { id: 'canvasCover', name: `CS-${tripNum}.jpg` },
+                { id: 'canvasTrip', name: `TS-${tripNum}.jpg` }
+            ];
+            sheets.forEach(s => {
+                const link = document.createElement('a');
+                link.download = s.name;
+                link.href = document.getElementById(s.id).toDataURL("image/jpeg", 0.9);
+                link.click();
+            });
+        }
+    </script>
+</body>
+
+</html>
