@@ -794,13 +794,13 @@
                         </svg>
                         Preview Sheets
                     </button>
-                    <button class="btn btn-secondary" onclick="generateReports()">
+                    <button class="btn btn-secondary" onclick="saveTripToHistory()">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="20" x2="18" y2="10"></line>
-                            <line x1="12" y1="20" x2="12" y2="4"></line>
-                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                            <polyline points="7 3 7 8 15 8"></polyline>
                         </svg>
-                        View Reports
+                        Create Trip Log
                     </button>
                 </div>
 
@@ -1374,12 +1374,9 @@
                 <table class="history-table">
                     <thead>
                         <tr style="border-bottom: 2px solid var(--border-color); text-align: left; color: var(--text-secondary);">
-                            <th style="padding: 12px 8px;">Date</th>
-                            <th style="padding: 12px 8px;">Trip #</th>
-                            <th style="padding: 12px 8px;">Origin &rarr; Dest</th>
-                            <th style="padding: 12px 8px;">Miles</th>
-                            <th style="padding: 12px 8px;">Fuel Stop Stats</th>
-                            <th style="padding: 12px 8px;">MPG</th>
+                            <th style="padding: 12px 8px;">Load Number</th>
+                            <th style="padding: 12px 8px;">Shipper's Name</th>
+                            <th style="padding: 12px 8px;">Trailer Number</th>
                             <th style="padding: 12px 8px; text-align: right;">Actions</th>
                         </tr>
                     </thead>
@@ -1387,17 +1384,11 @@
             `;
             
             history.forEach((t, index) => {
-                const origin = t.originCity ? `${t.originCity}, ${t.originState}` : t.originState || 'ST';
-                const dest = t.destCity ? `${t.destCity}, ${t.destState}` : t.destState || 'ST';
-                
                 html += `
                     <tr>
-                        <td style="padding: 12px 8px; font-weight: 500;">${t.date}</td>
-                        <td style="padding: 12px 8px; font-weight: 600; color: var(--accent-primary);">${t.trip}</td>
-                        <td style="padding: 12px 8px; color: var(--text-secondary); text-transform: uppercase;">${origin} &rarr; ${dest}</td>
-                        <td style="padding: 12px 8px;">${t.miles} mi</td>
-                        <td style="padding: 12px 8px;">${parseFloat(t.totalGal).toFixed(1)} gal / $${parseFloat(t.totalCost).toFixed(2)}</td>
-                        <td style="padding: 12px 8px; font-weight: 600;">${t.mpg}</td>
+                        <td style="padding: 12px 8px; font-weight: 600; color: var(--accent-primary);">${t.trip || 'N/A'}</td>
+                        <td style="padding: 12px 8px; color: var(--text-primary);">${t.shipper || 'N/A'}</td>
+                        <td style="padding: 12px 8px; color: var(--text-secondary);">${t.trailer || 'N/A'}</td>
                         <td style="padding: 12px 8px; text-align: right;">
                             <div style="display: flex; gap: 8px; justify-content: flex-end;">
                                 <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; font-weight: bold;" onclick="loadTripIntoEditor(${index})">Load</button>
