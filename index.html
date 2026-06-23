@@ -721,6 +721,14 @@
             justify-content: flex-end;
             gap: 12px;
         }
+
+        .history-table tfoot tr {
+            background-color: rgba(99, 102, 241, 0.08);
+            border-top: 2px solid var(--border-color);
+        }
+        .theme-light .history-table tfoot tr {
+            background-color: rgba(79, 70, 229, 0.05);
+        }
     </style>
 </head>
 
@@ -1504,13 +1512,23 @@
                 return;
             }
             
+            let totalMiles = 0;
+            let totalGallons = 0;
+            let totalFuelCost = 0;
+            let totalMiscCost = 0;
+            let totalRevenue = 0;
+            let totalExpenses = 0;
+            let totalProfit = 0;
+
             let html = `
                 <table class="history-table">
                     <thead>
                         <tr style="border-bottom: 2px solid var(--border-color); text-align: left; color: var(--text-secondary);">
                             <th style="padding: 12px 8px;">Load Number</th>
-                            <th style="padding: 12px 8px;">Shipper's Name</th>
-                            <th style="padding: 12px 8px;">Trailer Number</th>
+                            <th style="padding: 12px 8px;">MPG</th>
+                            <th style="padding: 12px 8px;">Price/Gal</th>
+                            <th style="padding: 12px 8px;">Expenses</th>
+                            <th style="padding: 12px 8px;">Driver Profit</th>
                             <th style="padding: 12px 8px; text-align: right;">Actions</th>
                         </tr>
                     </thead>
@@ -1518,11 +1536,36 @@
             `;
             
             history.forEach((t, index) => {
+                const miles = parseFloat(t.miles) || 0;
+                const gallons = parseFloat(t.totalGal) || 0;
+                const fuelCost = parseFloat(t.totalCost) || 0;
+                const misc = parseFloat(t.miscExpenses) || 0;
+                const paidMiles = parseFloat(t.paidMiles) || 0;
+                const payRate = parseFloat(t.payRate) || 0;
+                const surcharge = parseFloat(t.fuelSurcharge) || 0;
+
+                const ppg = gallons > 0 ? (fuelCost / gallons).toFixed(2) : '0.00';
+                const exp = fuelCost + misc;
+                const rev = (paidMiles * payRate) + surcharge;
+                const profit = rev - exp;
+
+                totalMiles += miles;
+                totalGallons += gallons;
+                totalFuelCost += fuelCost;
+                totalMiscCost += misc;
+                totalRevenue += rev;
+                totalExpenses += exp;
+                totalProfit += profit;
+
                 html += `
                     <tr>
                         <td style="padding: 12px 8px; font-weight: 600; color: var(--accent-primary);">${t.trip || 'N/A'}</td>
-                        <td style="padding: 12px 8px; color: var(--text-primary);">${t.shipper || 'N/A'}</td>
-                        <td style="padding: 12px 8px; color: var(--text-secondary);">${t.trailer || 'N/A'}</td>
+                        <td style="padding: 12px 8px; font-weight: 500;">${t.mpg || '0.00'}</td>
+                        <td style="padding: 12px 8px;">$${ppg}</td>
+                        <td style="padding: 12px 8px; color: var(--accent-danger);">$${exp.toFixed(2)}</td>
+                        <td style="padding: 12px 8px; font-weight: bold; color: ${profit >= 0 ? 'var(--accent-success)' : 'var(--accent-danger)'};">
+                            $${profit.toFixed(2)}
+                        </td>
                         <td style="padding: 12px 8px; text-align: right;">
                             <div style="display: flex; gap: 8px; justify-content: flex-end;">
                                 <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; font-weight: bold;" onclick="loadTripIntoEditor(${index})">Load</button>
@@ -1533,9 +1576,24 @@
                     </tr>
                 `;
             });
+
+            const avgMpg = totalGallons > 0 ? (totalMiles / totalGallons).toFixed(2) : '0.00';
+            const avgPpg = totalGallons > 0 ? (totalFuelCost / totalGallons).toFixed(2) : '0.00';
             
             html += `
                     </tbody>
+                    <tfoot>
+                        <tr style="border-top: 2px solid var(--border-color); font-weight: 800; background: rgba(99, 102, 241, 0.08);">
+                            <td style="padding: 12px 8px; color: var(--text-primary);">Total / Avg:</td>
+                            <td style="padding: 12px 8px; color: var(--text-primary); font-weight: 800;">${avgMpg}</td>
+                            <td style="padding: 12px 8px; color: var(--text-primary); font-weight: 800;">$${avgPpg}</td>
+                            <td style="padding: 12px 8px; color: var(--accent-danger); font-weight: 800;">$${totalExpenses.toFixed(2)}</td>
+                            <td style="padding: 12px 8px; font-weight: 900; color: ${totalProfit >= 0 ? 'var(--accent-success)' : 'var(--accent-danger)'};">
+                                $${totalProfit.toFixed(2)}
+                            </td>
+                            <td style="padding: 12px 8px;"></td>
+                        </tr>
+                    </tfoot>
                 </table>
             `;
             
