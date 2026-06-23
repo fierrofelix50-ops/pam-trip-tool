@@ -626,6 +626,101 @@
         .theme-light .history-table tbody tr:hover {
             background-color: rgba(79, 70, 229, 0.03);
         }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .modal-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-lg);
+            animation: modalFadeIn 0.3s ease;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .modal-section-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--accent-primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: 4px;
+            margin-top: 8px;
+        }
+
+        .modal-form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        @media (max-width: 480px) {
+            .modal-form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
     </style>
 </head>
 
@@ -935,6 +1030,45 @@
                 
                 <div id="history-table-wrapper" style="overflow-x: auto;">
                     <!-- Dynamically rendered table of trips -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Update Trip Log Modal Overlay -->
+        <div id="update-modal" class="modal-overlay" style="display: none;">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3>Update Trip Log</h3>
+                    <button class="close-btn" onclick="closeUpdateModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="update-trip-index">
+                    
+                    <div class="modal-section-title">Trip Information</div>
+                    <div class="modal-form-grid">
+                        <div class="form-group"><label>Date</label><input type="date" id="update-date"></div>
+                        <div class="form-group"><label>Load Number</label><input type="text" id="update-trip"></div>
+                        <div class="form-group"><label>Shipper Name</label><input type="text" id="update-shipper"></div>
+                        <div class="form-group"><label>Trailer Number</label><input type="text" id="update-trailer"></div>
+                    </div>
+                    
+                    <div class="modal-section-title">Payroll Details</div>
+                    <div class="modal-form-grid">
+                        <div class="form-group"><label>Paid Miles</label><input type="number" id="update-paid-miles" placeholder="0"></div>
+                        <div class="form-group"><label>Pay Rate ($/mi)</label><input type="number" step="0.01" id="update-pay-rate" placeholder="0.00"></div>
+                        <div class="form-group"><label>Fuel Surcharge ($)</label><input type="number" step="0.01" id="update-surcharge" placeholder="0.00"></div>
+                    </div>
+                    
+                    <div class="modal-section-title">Fuel & Expenses</div>
+                    <div class="modal-form-grid">
+                        <div class="form-group"><label>Fuel Cost ($)</label><input type="number" step="0.01" id="update-fuel-cost" placeholder="0.00"></div>
+                        <div class="form-group"><label>Gallons Purchased</label><input type="number" step="0.1" id="update-fuel-gal" placeholder="0.0"></div>
+                        <div class="form-group"><label>Misc Expenses ($)</label><input type="number" step="0.01" id="update-misc" placeholder="0.00"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" style="padding: 10px 20px;" onclick="closeUpdateModal()">Cancel</button>
+                    <button class="btn btn-success" style="padding: 10px 20px;" onclick="saveUpdatedTrip()">Save Changes</button>
                 </div>
             </div>
         </div>
@@ -1392,6 +1526,7 @@
                         <td style="padding: 12px 8px; text-align: right;">
                             <div style="display: flex; gap: 8px; justify-content: flex-end;">
                                 <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; font-weight: bold;" onclick="loadTripIntoEditor(${index})">Load</button>
+                                <button class="btn btn-primary" style="padding: 6px 12px; font-size: 12px; font-weight: bold; background: var(--accent-info-gradient);" onclick="openUpdateModal(${index})">Update</button>
                                 <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px; font-weight: bold;" onclick="deleteTrip(${index})">Delete</button>
                             </div>
                         </td>
@@ -1488,7 +1623,7 @@
             }
             
             let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Date,Trip #,Truck #,Trailer #,Driver Code,Shipper,Origin City,Origin State,Destination City,Destination State,Beg Odometer,End Odometer,Miles,Total Gallons,Total Cost,Avg MPG,Cost Per Mile\n";
+            csvContent += "Date,Trip #,Truck #,Trailer #,Driver Code,Shipper,Origin City,Origin State,Destination City,Destination State,Beg Odometer,End Odometer,Miles,Total Gallons,Total Cost,Avg MPG,Cost Per Mile,Paid Miles,Pay Rate,Fuel Surcharge,Misc Expenses\n";
             
             history.forEach(t => {
                 const row = [
@@ -1508,7 +1643,11 @@
                     t.totalGal,
                     t.totalCost,
                     t.mpg,
-                    t.cpm
+                    t.cpm,
+                    t.paidMiles !== undefined ? t.paidMiles : '',
+                    t.payRate !== undefined ? t.payRate : '',
+                    t.fuelSurcharge !== undefined ? t.fuelSurcharge : '',
+                    t.miscExpenses !== undefined ? t.miscExpenses : ''
                 ];
                 csvContent += row.join(",") + "\n";
             });
@@ -1610,6 +1749,68 @@
                     link.click();
                 }
             });
+        }
+
+        // Open Update Modal and fill values
+        function openUpdateModal(index) {
+            const history = JSON.parse(localStorage.getItem('pam_trips_history') || '[]');
+            const trip = history[index];
+            if (!trip) return;
+
+            document.getElementById('update-trip-index').value = index;
+            document.getElementById('update-date').value = trip.date || '';
+            document.getElementById('update-trip').value = trip.trip || '';
+            document.getElementById('update-shipper').value = trip.shipper || '';
+            document.getElementById('update-trailer').value = trip.trailer || '';
+            
+            document.getElementById('update-paid-miles').value = trip.paidMiles !== undefined ? trip.paidMiles : (trip.miles || '');
+            document.getElementById('update-pay-rate').value = trip.payRate !== undefined ? trip.payRate : '';
+            document.getElementById('update-surcharge').value = trip.fuelSurcharge !== undefined ? trip.fuelSurcharge : '';
+            
+            document.getElementById('update-fuel-cost').value = trip.fuelCost !== undefined ? trip.fuelCost : (trip.totalCost || '');
+            document.getElementById('update-fuel-gal').value = trip.fuelGal !== undefined ? trip.fuelGal : (trip.totalGal || '');
+            document.getElementById('update-misc').value = trip.miscExpenses !== undefined ? trip.miscExpenses : '';
+
+            document.getElementById('update-modal').style.display = 'flex';
+        }
+
+        function closeUpdateModal() {
+            document.getElementById('update-modal').style.display = 'none';
+        }
+
+        // Save updated values back to localStorage database
+        function saveUpdatedTrip() {
+            const index = parseInt(document.getElementById('update-trip-index').value);
+            let history = JSON.parse(localStorage.getItem('pam_trips_history') || '[]');
+            const trip = history[index];
+            if (!trip) return;
+
+            trip.date = document.getElementById('update-date').value || '';
+            trip.trip = document.getElementById('update-trip').value || '';
+            trip.shipper = document.getElementById('update-shipper').value || '';
+            trip.trailer = document.getElementById('update-trailer').value || '';
+
+            trip.paidMiles = parseFloat(document.getElementById('update-paid-miles').value) || 0;
+            trip.payRate = parseFloat(document.getElementById('update-pay-rate').value) || 0;
+            trip.fuelSurcharge = parseFloat(document.getElementById('update-surcharge').value) || 0;
+
+            trip.fuelCost = parseFloat(document.getElementById('update-fuel-cost').value) || 0;
+            trip.fuelGal = parseFloat(document.getElementById('update-fuel-gal').value) || 0;
+            trip.miscExpenses = parseFloat(document.getElementById('update-misc').value) || 0;
+            
+            trip.miles = trip.paidMiles || trip.miles; 
+            trip.totalCost = trip.fuelCost;
+            trip.totalGal = trip.fuelGal;
+            trip.mpg = trip.fuelGal > 0 ? (trip.miles / trip.fuelGal).toFixed(2) : '0.00';
+            trip.cpm = trip.miles > 0 ? (trip.fuelCost / trip.miles).toFixed(2) : '0.00';
+
+            history[index] = trip;
+            localStorage.setItem('pam_trips_history', JSON.stringify(history));
+            
+            alert("Trip updated successfully!");
+            closeUpdateModal();
+            renderHistoryTable();
+            loadHomeYTD();
         }
     </script>
 </body>
