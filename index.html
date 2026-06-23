@@ -173,6 +173,83 @@
             display: none;
         }
 
+        /* Home Screen Navigation Grid & Cards */
+        .home-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 680px) {
+            .home-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .nav-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
+            transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+            position: relative;
+            overflow: hidden;
+            text-align: left;
+        }
+
+        .nav-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-primary-gradient);
+            opacity: 0;
+            transition: opacity var(--transition-fast);
+        }
+
+        .nav-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--border-focus);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+        }
+
+        .nav-card:hover::before {
+            opacity: 1;
+        }
+
+        .nav-card-icon {
+            font-size: 32px;
+            background: var(--bg-app);
+            width: 56px;
+            height: 56px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .nav-card-content h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: var(--text-primary);
+        }
+
+        .nav-card-content p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
         /* Card Sections */
         .card-grid {
             display: grid;
@@ -531,6 +608,24 @@
             color: var(--text-muted);
             margin-left: 2px;
         }
+
+        /* History Table Styles */
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 13px;
+        }
+        .history-table tbody tr {
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color var(--transition-fast);
+        }
+        .history-table tbody tr:hover {
+            background-color: rgba(99, 102, 241, 0.05);
+        }
+        .theme-light .history-table tbody tr:hover {
+            background-color: rgba(79, 70, 229, 0.03);
+        }
     </style>
 </head>
 
@@ -540,7 +635,7 @@
         
         <!-- Header -->
         <header class="app-header">
-            <div class="header-logo">
+            <div class="header-logo" onclick="showView('home-ui')" style="cursor: pointer;">
                 <svg class="truck-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="1" y="3" width="15" height="13" rx="2" ry="2" />
                     <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
@@ -549,7 +644,14 @@
                 </svg>
                 <span class="header-title">PAM Trip Tool <span class="version-pill">v6</span></span>
             </div>
-            <div class="header-actions">
+            <div class="header-actions" style="display: flex; align-items: center; gap: 10px;">
+                <!-- Back to Home navigation button -->
+                <button id="homeBtn" class="icon-btn" aria-label="Go to Home Screen" onclick="showView('home-ui')" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                </button>
                 <button id="themeToggleBtn" class="icon-btn" aria-label="Toggle Theme" onclick="toggleTheme()">
                     <!-- Sun Icon (shown in dark theme) -->
                     <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -571,9 +673,42 @@
             </div>
         </header>
 
-        <!-- Form Editor UI -->
-        <div id="form-ui">
+        <!-- Home Screen UI -->
+        <div id="home-ui">
+            <div class="card" style="margin-bottom: 25px; padding: 30px; text-align: center; background: linear-gradient(135deg, var(--bg-card), var(--bg-app));">
+                <div style="font-size: 36px; margin-bottom: 10px;">🚚</div>
+                <h2 style="font-size: 24px; font-weight: 800; margin-bottom: 8px;">PAM Trucker Portal</h2>
+                <p style="color: var(--text-secondary); max-width: 500px; margin: 0 auto 20px auto; font-size: 14px;">
+                    Welcome! Select an option below to fill out your trucker sheets, check your trip statistics, or manage your history logs.
+                </p>
+                
+                <!-- Quick KPI widget showing dynamic YTD totals calculated from history -->
+                <div id="home-ytd-summary" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                    <!-- Dynamically populated by loadHomeYTD() -->
+                </div>
+            </div>
             
+            <div class="home-grid">
+                <div class="nav-card" onclick="showView('form-ui')">
+                    <div class="nav-card-icon">📝</div>
+                    <div class="nav-card-content">
+                        <h3>Current Trip Tool</h3>
+                        <p>Fill out trip basics, enter routing, manage fuel stops, and preview/download template sheets.</p>
+                    </div>
+                </div>
+                
+                <div class="nav-card" onclick="showView('history-ui')">
+                    <div class="nav-card-icon">📂</div>
+                    <div class="nav-card-content">
+                        <h3>Trip History</h3>
+                        <p>View saved historical trip logs, reload past entries into the editor, or export log lists to CSV.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Editor UI -->
+        <div id="form-ui" style="display: none;">
             <div class="card-grid">
                 
                 <!-- Card 1: Trip Basics -->
@@ -717,7 +852,7 @@
                         </svg>
                         Save Sheets (TS & CS)
                     </button>
-                    <button class="btn btn-secondary" onclick="location.reload()">
+                    <button class="btn btn-secondary" onclick="showView('form-ui')">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="15 18 9 12 15 6"></polyline>
                         </svg>
@@ -755,27 +890,51 @@
 
             <div class="card" style="margin-bottom: 25px;">
                 <div class="btn-group-3">
-                    <button class="btn btn-success" onclick="saveTripToYTD()">
+                    <button class="btn btn-success btn-span-2" onclick="saveTripToHistory()">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                             <polyline points="17 21 17 13 7 13 7 21"></polyline>
                             <polyline points="7 3 7 8 15 8"></polyline>
                         </svg>
-                        Save Trip to YTD
+                        Save Trip to History
                     </button>
-                    <button class="btn btn-danger" onclick="clearYTD()">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                        Clear YTD Data
-                    </button>
-                    <button class="btn btn-secondary btn-span-2" onclick="location.reload()">
+                    <button class="btn btn-secondary btn-span-2" onclick="showView('form-ui')">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="15 18 9 12 15 6"></polyline>
                         </svg>
                         Back to Form Editor
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trip History UI -->
+        <div id="history-ui" style="display: none;">
+            <div class="card" style="margin-bottom: 25px;">
+                <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-primary);">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        Saved Trip Logs
+                    </div>
+                    <div class="flex-row">
+                        <button class="btn btn-primary" style="padding: 8px 16px; font-size: 13px;" onclick="exportHistoryCSV()">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Export CSV
+                        </button>
+                        <button class="btn btn-danger" style="padding: 8px 16px; font-size: 13px;" onclick="clearAllHistory()">
+                            Clear Logs
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="history-table-wrapper" style="overflow-x: auto;">
+                    <!-- Dynamically rendered table of trips -->
                 </div>
             </div>
         </div>
@@ -813,6 +972,9 @@
             populateStates('destState');
 
             loadAllFields();
+
+            // Set up home dashboard totals
+            showView('home-ui');
 
             // Set up auto-saving on interaction
             document.addEventListener('change', (e) => {
@@ -872,6 +1034,32 @@
                     sunIcon.style.display = 'block';
                     moonIcon.style.display = 'none';
                 }
+            }
+        }
+
+        // Custom Navigation Flow
+        function showView(viewId) {
+            document.getElementById('home-ui').style.display = 'none';
+            document.getElementById('form-ui').style.display = 'none';
+            document.getElementById('preview-ui').style.display = 'none';
+            document.getElementById('report-ui').style.display = 'none';
+            document.getElementById('history-ui').style.display = 'none';
+            
+            document.getElementById(viewId).style.display = 'block';
+            
+            const homeBtn = document.getElementById('homeBtn');
+            if (homeBtn) {
+                if (viewId === 'home-ui') {
+                    homeBtn.style.display = 'none';
+                } else {
+                    homeBtn.style.display = 'flex';
+                }
+            }
+            
+            if (viewId === 'home-ui') {
+                loadHomeYTD();
+            } else if (viewId === 'history-ui') {
+                renderHistoryTable();
             }
         }
 
@@ -976,6 +1164,53 @@
             return res.toUpperCase();
         }
 
+        // Generate complete trip object from current editor state
+        function getTripObject() {
+            const begOdo = parseFloat(document.getElementById('begOdo').value) || 0;
+            const endOdo = parseFloat(document.getElementById('endOdo').value) || 0;
+            const miles = endOdo > begOdo ? endOdo - begOdo : 0;
+
+            let totalGal = 0, totalCost = 0;
+            document.querySelectorAll('.gallons').forEach(el => totalGal += parseFloat(el.value) || 0);
+            document.querySelectorAll('.costs').forEach(el => totalCost += parseFloat(el.value) || 0);
+
+            const mpg = totalGal > 0 ? (miles / totalGal).toFixed(2) : '0.00';
+            const cpm = miles > 0 ? (totalCost / miles).toFixed(2) : '0.00';
+
+            const fuelStops = [];
+            const count = parseInt(document.getElementById('fuelCount').value) || 0;
+            for (let i = 1; i <= count; i++) {
+                fuelStops.push({
+                    city: document.getElementById(`fuelCity${i}`)?.value || '',
+                    state: document.getElementById(`fuelState${i}`)?.value || '',
+                    gallons: parseFloat(document.getElementById(`fuelGal${i}`)?.value) || 0,
+                    cost: parseFloat(document.getElementById(`fuelCost${i}`)?.value) || 0,
+                    odometer: parseFloat(document.getElementById(`fuelOdo${i}`)?.value) || 0
+                });
+            }
+
+            return {
+                date: document.getElementById('date').value || '',
+                trip: document.getElementById('trip').value || '',
+                truck: document.getElementById('truck').value || '',
+                trailer: document.getElementById('trailer').value || '',
+                driverCode: document.getElementById('driverCode').value || '',
+                shipper: document.getElementById('shipper').value || '',
+                originCity: document.getElementById('originCity').value || '',
+                originState: document.getElementById('originState').value || '',
+                destCity: document.getElementById('destCity').value || '',
+                destState: document.getElementById('destState').value || '',
+                begOdo,
+                endOdo,
+                miles,
+                totalGal,
+                totalCost,
+                mpg,
+                cpm,
+                fuelStops
+            };
+        }
+
         let currentTripData = {};
 
         function generateReports() {
@@ -1023,18 +1258,42 @@
             loadYTDReport();
         }
 
-        function saveTripToYTD() {
-            let ytd = JSON.parse(localStorage.getItem('ytdData') || '{"miles":0, "gallons":0, "cost":0}');
-            ytd.miles += currentTripData.miles;
-            ytd.gallons += currentTripData.totalGal;
-            ytd.cost += currentTripData.totalCost;
-            localStorage.setItem('ytdData', JSON.stringify(ytd));
-            alert("Trip saved to YTD totals!");
-            loadYTDReport();
+        // Save Trip to Local History Database array
+        function saveTripToHistory() {
+            const trip = getTripObject();
+            if (!trip.trip) {
+                alert("Please enter a Trip / Order # before saving!");
+                return;
+            }
+            
+            let history = JSON.parse(localStorage.getItem('pam_trips_history') || '[]');
+            
+            const existingIndex = history.findIndex(t => t.trip === trip.trip);
+            if (existingIndex !== -1) {
+                if (confirm(`Trip #${trip.trip} already exists in history. Do you want to overwrite it?`)) {
+                    history[existingIndex] = trip;
+                } else {
+                    return;
+                }
+            } else {
+                history.push(trip);
+            }
+            
+            localStorage.setItem('pam_trips_history', JSON.stringify(history));
+            alert(`Trip #${trip.trip} saved successfully to History!`);
+            showView('home-ui');
         }
 
+        // Load YTD Report dynamically from history list
         function loadYTDReport() {
-            let ytd = JSON.parse(localStorage.getItem('ytdData') || '{"miles":0, "gallons":0, "cost":0}');
+            let history = JSON.parse(localStorage.getItem('pam_trips_history') || '[]');
+            let ytd = { miles: 0, gallons: 0, cost: 0 };
+            history.forEach(t => {
+                ytd.miles += parseFloat(t.miles) || 0;
+                ytd.gallons += parseFloat(t.totalGal) || 0;
+                ytd.cost += parseFloat(t.totalCost) || 0;
+            });
+            
             const ytdMpg = ytd.gallons > 0 ? (ytd.miles / ytd.gallons).toFixed(2) : '0.00';
             const ytdCpm = ytd.miles > 0 ? (ytd.cost / ytd.miles).toFixed(2) : '0.00';
 
@@ -1064,11 +1323,212 @@
             `;
         }
 
-        function clearYTD() {
-            if (confirm("Are you sure you want to erase all Year-to-Date data?")) {
-                localStorage.removeItem('ytdData');
-                loadYTDReport();
+        // Calculate and display dynamic YTD stats on Home welcome card
+        function loadHomeYTD() {
+            let history = JSON.parse(localStorage.getItem('pam_trips_history') || '[]');
+            let totals = { miles: 0, gallons: 0, cost: 0 };
+            history.forEach(t => {
+                totals.miles += parseFloat(t.miles) || 0;
+                totals.gallons += parseFloat(t.totalGal) || 0;
+                totals.cost += parseFloat(t.totalCost) || 0;
+            });
+            
+            const mpg = totals.gallons > 0 ? (totals.miles / totals.gallons).toFixed(2) : '0.00';
+            
+            const container = document.getElementById('home-ytd-summary');
+            if (container) {
+                container.innerHTML = `
+                    <div class="kpi-card highlight">
+                        <div class="kpi-label" style="font-size: 9px;">YTD Miles</div>
+                        <div class="kpi-value" style="font-size: 16px;">${totals.miles}<span class="kpi-unit">mi</span></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label" style="font-size: 9px;">YTD Fuel Cost</div>
+                        <div class="kpi-value" style="font-size: 16px;">$${totals.cost.toFixed(0)}</div>
+                    </div>
+                    <div class="kpi-card highlight">
+                        <div class="kpi-label" style="font-size: 9px;">YTD Avg MPG</div>
+                        <div class="kpi-value" style="font-size: 16px;">${mpg}</div>
+                    </div>
+                `;
             }
+        }
+
+        // Render History Table List
+        function renderHistoryTable() {
+            const history = JSON.parse(localStorage.getItem('pam_trips_history') || '[]');
+            const container = document.getElementById('history-table-wrapper');
+            if (!container) return;
+            
+            if (history.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                        <p style="font-size: 15px; margin-bottom: 12px;">No historical trip logs saved yet.</p>
+                        <button class="btn btn-primary" onclick="showView('form-ui')">Add First Trip</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = `
+                <table class="history-table">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border-color); text-align: left; color: var(--text-secondary);">
+                            <th style="padding: 12px 8px;">Date</th>
+                            <th style="padding: 12px 8px;">Trip #</th>
+                            <th style="padding: 12px 8px;">Origin &rarr; Dest</th>
+                            <th style="padding: 12px 8px;">Miles</th>
+                            <th style="padding: 12px 8px;">Fuel Stop Stats</th>
+                            <th style="padding: 12px 8px;">MPG</th>
+                            <th style="padding: 12px 8px; text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            history.forEach((t, index) => {
+                const origin = t.originCity ? `${t.originCity}, ${t.originState}` : t.originState || 'ST';
+                const dest = t.destCity ? `${t.destCity}, ${t.destState}` : t.destState || 'ST';
+                
+                html += `
+                    <tr>
+                        <td style="padding: 12px 8px; font-weight: 500;">${t.date}</td>
+                        <td style="padding: 12px 8px; font-weight: 600; color: var(--accent-primary);">${t.trip}</td>
+                        <td style="padding: 12px 8px; color: var(--text-secondary); text-transform: uppercase;">${origin} &rarr; ${dest}</td>
+                        <td style="padding: 12px 8px;">${t.miles} mi</td>
+                        <td style="padding: 12px 8px;">${parseFloat(t.totalGal).toFixed(1)} gal / $${parseFloat(t.totalCost).toFixed(2)}</td>
+                        <td style="padding: 12px 8px; font-weight: 600;">${t.mpg}</td>
+                        <td style="padding: 12px 8px; text-align: right;">
+                            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; font-weight: bold;" onclick="loadTripIntoEditor(${index})">Load</button>
+                                <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px; font-weight: bold;" onclick="deleteTrip(${index})">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = html;
+        }
+
+        // Load historical trip back into form inputs
+        function loadTripIntoEditor(index) {
+            const history = JSON.parse(localStorage.getItem('pam_trips_history') || '[]');
+            const trip = history[index];
+            if (!trip) return;
+            
+            if (confirm(`Do you want to load Trip #${trip.trip} into the Form Editor? This will replace any data currently filled in the editor.`)) {
+                // Wipe local settings (except theme & history)
+                localStorage.clear();
+                
+                // Restore theme & history array
+                const isLight = document.documentElement.classList.contains('theme-light');
+                localStorage.setItem('theme', isLight ? 'light' : 'dark');
+                localStorage.setItem('pam_trips_history', JSON.stringify(history));
+                
+                // Write keys back
+                localStorage.setItem('date', trip.date || '');
+                localStorage.setItem('trip', trip.trip || '');
+                localStorage.setItem('truck', trip.truck || '');
+                localStorage.setItem('trailer', trip.trailer || '');
+                localStorage.setItem('driverCode', trip.driverCode || '');
+                localStorage.setItem('shipper', trip.shipper || '');
+                localStorage.setItem('originCity', trip.originCity || '');
+                localStorage.setItem('originState', trip.originState || '');
+                localStorage.setItem('destCity', trip.destCity || '');
+                localStorage.setItem('destState', trip.destState || '');
+                localStorage.setItem('begOdo', trip.begOdo || '');
+                localStorage.setItem('endOdo', trip.endOdo || '');
+                
+                const count = trip.fuelStops ? trip.fuelStops.length : 0;
+                localStorage.setItem('fuelCount', count);
+                
+                if (trip.fuelStops) {
+                    trip.fuelStops.forEach((stop, i) => {
+                        const num = i + 1;
+                        localStorage.setItem(`fuelCity${num}`, stop.city || '');
+                        localStorage.setItem(`fuelState${num}`, stop.state || '');
+                        localStorage.setItem(`fuelGal${num}`, stop.gallons || '');
+                        localStorage.setItem(`fuelCost${num}`, stop.cost || '');
+                        localStorage.setItem(`fuelOdo${num}`, stop.odometer || '');
+                    });
+                }
+                
+                // Reload form elements DOM
+                loadAllFields();
+                
+                // Open the editor
+                showView('form-ui');
+            }
+        }
+
+        // Delete historical trip
+        function deleteTrip(index) {
+            let history = JSON.parse(localStorage.getItem('pam_trips_history') || '[]');
+            const trip = history[index];
+            if (!trip) return;
+            
+            if (confirm(`Are you sure you want to delete Trip #${trip.trip} from history?`)) {
+                history.splice(index, 1);
+                localStorage.setItem('pam_trips_history', JSON.stringify(history));
+                renderHistoryTable();
+            }
+        }
+
+        // Clear all history
+        function clearAllHistory() {
+            if (confirm("Are you sure you want to permanently erase ALL trip logs from history? This cannot be undone.")) {
+                localStorage.removeItem('pam_trips_history');
+                renderHistoryTable();
+            }
+        }
+
+        // Export history logs as CSV
+        function exportHistoryCSV() {
+            const history = JSON.parse(localStorage.getItem('pam_trips_history') || '[]');
+            if (history.length === 0) {
+                alert("No historical trip logs to export!");
+                return;
+            }
+            
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Date,Trip #,Truck #,Trailer #,Driver Code,Shipper,Origin City,Origin State,Destination City,Destination State,Beg Odometer,End Odometer,Miles,Total Gallons,Total Cost,Avg MPG,Cost Per Mile\n";
+            
+            history.forEach(t => {
+                const row = [
+                    t.date,
+                    `"${t.trip}"`,
+                    `"${t.truck}"`,
+                    `"${t.trailer}"`,
+                    `"${t.driverCode}"`,
+                    `"${t.shipper.replace(/"/g, '""')}"`,
+                    `"${t.originCity.replace(/"/g, '""')}"`,
+                    t.originState,
+                    `"${t.destCity.replace(/"/g, '""')}"`,
+                    t.destState,
+                    t.begOdo,
+                    t.endOdo,
+                    t.miles,
+                    t.totalGal,
+                    t.totalCost,
+                    t.mpg,
+                    t.cpm
+                ];
+                csvContent += row.join(",") + "\n";
+            });
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "pam_trip_history.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         async function renderPreview() {
